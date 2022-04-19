@@ -10,9 +10,9 @@ class Section:
     _outfile_directory = None
     sections = {}
     dependencies = {}
-    num_desc = 0
 
     def __init__(self, name, config, args=None):
+        print(name)
         self.name = name
         Section.sections[name] = self
         self._config = config
@@ -71,8 +71,6 @@ class Section:
         return self._config.items(section)
 
     def check_path(self, name):
-        if name == 'None':
-            return None
         name = path.join(Section.get_outfile_directory(self), name)
         if self._args.overwrite is None:
             return name
