@@ -23,6 +23,8 @@ import mpi4py
 
 
 def runcommand(cmd):
+    print("cmd:")
+    print(cmd)
     process = subprocess.Popen(cmd.split(), shell=False, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, universal_newlines=True)
     c = process.communicate()
@@ -57,6 +59,7 @@ def whichmpi():
 
 
 scalapackversion = whichscalapack()
+print(scalapackversion)
 mpiversion = whichmpi()
 
 if mpiversion == 'openmpi':
@@ -74,7 +77,11 @@ if scalapackversion == 'intelmkl':
     # scl_libdir = ['/Users/casieve/anaconda3/lib']
 elif scalapackversion == 'netlib':
     scl_lib = ['scalapack', 'gfortran']
+    #print(scl_lib)
     scl_libdir = [ os.path.dirname(runcommand('gfortran -print-file-name=libgfortran.a')) ]
+    #print(scl_libdir)
+    scl_libdir = ['/usr/local/Cellar/scalapack/2.1.0_3/lib']
+    print(scl_libdir)
 else:
     raise Exception("Scalapack distribution unsupported. Please modify setup.py manually.")
 
@@ -84,13 +91,15 @@ ext_modules = [Extension(# module name:
                          # source file:
                          sources=['scalapack.pyx'],
                          # Needed if building with NumPy. This includes the NumPy headers when compiling.
-                         include_dirs=[get_include(), mpi4py.get_include(), scl_incl],
-                         #include libraries 
-                         library_dirs=scl_libdir, libraries=scl_lib,
+                         #include_dirs=[get_include(), mpi4py.get_include(), scl_incl],
+                         include_dirs=[get_include(), mpi4py.get_include()],
+                         #include libraries
+                         library_dirs=scl_libdir,
+                         libraries=scl_lib,
                          #libraries=["scalapack"],
                          #library_dirs=[library_dirs],
                          # other compile args for gcc
-                         extra_compile_args=["-DMKL_ILP64", "-m64"],
+                         extra_compile_args=["-DMKL_ILP64", "-m64", "-std=c11"],
                          # other files to link to
                          extra_link_args=["-lm", "-ldl"] + mpilinkargs)]
 

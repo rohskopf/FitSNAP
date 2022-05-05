@@ -59,9 +59,14 @@ class FitTorch(torch.nn.Module):
                 atoms_per_structure (tensor of ints): Number of atoms per configuration
 
         """
-
+        print("-----FORWARD------")
+        #print(atoms_per_structure.size())
+        print(atoms_per_structure.sum())
+        print(x.size())
         predicted_energy_total = torch.zeros(atoms_per_structure.size())
+        print(indices[0:66])
         predicted_energy_total.index_add_(0, indices, self.network_architecture(x).squeeze())
+        print(predicted_energy_total.size())
         return predicted_energy_total
 
     def import_wb(self, weights, bias):
@@ -101,6 +106,7 @@ class FitTorch(torch.nn.Module):
             model = IgnoreElems(self.network_architecture)
         linked_model = TorchWrapper(model, n_descriptors=self.desc_len, n_elements=self.n_elem)
         torch.save(linked_model, filename)
+        print(filename)
 
     def load_lammps_torch(self, filename="FitTorch.pt"):
         """

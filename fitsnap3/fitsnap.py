@@ -80,4 +80,7 @@ class FitSnap:
     def write_output(self):
         if not config.args.perform_fit:
             return
-        output.output(self.solver.fit, self.solver.errors)
+        # Following if statement prevents output from trying to process non-existing solver.fit
+        if (config.sections["SOLVER"].solver != "PYTORCH"):
+            print("------------")
+            output.output(self.solver.fit, self.solver.errors)

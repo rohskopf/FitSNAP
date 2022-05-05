@@ -98,6 +98,12 @@ try:
 
             self.training_data = InRAMDatasetPyTorch(pt.shared_arrays['a'].array[training],
                                                      pt.shared_arrays['b'].array[training])
+            print("pt shared arrays 'a':")
+            print(pt.shared_arrays['a'].array[training].shape)
+            print("pt shared arrays 'b':")
+            print(pt.shared_arrays['b'].array[training].shape)
+            print("training_data:")
+            print(self.training_data)
             self.training_loader = DataLoader(self.training_data,
                                               batch_size=config.sections["PYTORCH"].batch_size,
                                               shuffle=False,
@@ -129,9 +135,18 @@ try:
                 for i, batch in enumerate(self.training_loader):
                     self.model.train()
                     descriptors = batch['x'].to(self.device).requires_grad_(True)
+                    print("Descriptors:")
+                    print(descriptors)
+                    print(descriptors.size())
+                    print("---------")
                     targets = batch['y'].to(self.device).requires_grad_(True)
                     indices = batch['i'].to(self.device)
+                    print("INDICES-------")
+                    print(indices.size())
+                    print("--------------")
                     num_atoms = batch['noa'].to(self.device)
+                    print(f"num_atoms: {num_atoms}")
+                    print(num_atoms.size())
                     energies = torch.reshape(self.model(descriptors, indices, num_atoms), (-1,)).to(self.device)
                     loss = self.loss_function(energies/num_atoms, targets)
                     self.optimizer.zero_grad()

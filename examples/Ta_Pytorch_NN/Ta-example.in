@@ -26,8 +26,8 @@ Ta = 0.0
 [PYTORCH]
 layer_sizes = num_desc 10 8 6 1
 learning_rate = 5e-3
-num_epochs = 800
-batch_size = 363
+num_epochs = 1 #800
+batch_size = 100 #363
 save_state_output = Ta_Pytorch.pt
 # save_state_input = Ta_Pytorch.pt
 

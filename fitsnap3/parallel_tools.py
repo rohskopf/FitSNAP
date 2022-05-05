@@ -272,6 +272,7 @@ class ParallelTools:
         return timed
 
     def rank_zero(self, method):
+        print(method)
         if self._rank == 0:
             def check_if_rank_zero(*args, **kw):
                 return method(*args, **kw)

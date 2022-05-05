@@ -19,6 +19,7 @@ class Snap(Output):
 
     @pt.rank_zero
     def write(self, coeffs, errors):
+        print(errors)
         if config.sections["EXTRAS"].only_test != 1:
             if config.sections["CALCULATOR"].calculator != "LAMMPSSNAP":
                 raise TypeError("SNAP output style must be paired with LAMMPSSNAP calculator")

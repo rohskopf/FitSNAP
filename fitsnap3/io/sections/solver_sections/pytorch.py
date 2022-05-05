@@ -17,6 +17,7 @@ try:
             self._check_if_used("SOLVER", "solver", "SVD")
 
             self.layer_sizes = self.get_value("PYTORCH", "layer_sizes", "num_desc 512 512 1").split()
+            print(self.layer_sizes)
             if self.layer_sizes[0] == "num_desc":
                 self.layer_sizes[0] = Section.num_desc
             self.layer_sizes = [int(layer_size) for layer_size in self.layer_sizes]
