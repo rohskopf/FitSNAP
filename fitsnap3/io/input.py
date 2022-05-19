@@ -1,10 +1,9 @@
 import configparser
 import argparse
 from pickle import HIGHEST_PROTOCOL
-from .sections.section_factory import new_section
+#from .sections.section_factory import new_section # Moved this inside set_sections to help prevent unused modules (e.g. pytorch) from loading.
 from ..parallel_tools import pt, output
 from pathlib import Path
-
 
 class Config:
 
@@ -60,7 +59,6 @@ class Config:
         self.args = parser.parse_args()
 
     def parse_config(self):
-
         tmp_config = configparser.ConfigParser(inline_comment_prefixes='#')
         tmp_config.optionxform = str
         if not Path(self.args.infile).is_file():
@@ -79,9 +77,10 @@ class Config:
                 vprint(f"Substituting {kwg}:{kwn}={kwv}")
                 tmp_config[kwg][kwn] = kwv
 
-        self.set_sections(tmp_config)
+        self.tmp_config = tmp_config
 
     def set_sections(self, tmp_config):
+        from .sections.section_factory import new_section
         sections = tmp_config.sections()
         for section in sections:
             if section == "TEMPLATE":

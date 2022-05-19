@@ -29,7 +29,9 @@
 #
 # <!-----------------END-HEADER------------------------------------->
 
+
 from ..io.input import config
+config.set_sections(config.tmp_config) # Set sections after constructor to prevent loading unwanted modules (e.g. pytorch/mliap).
 from os import path, listdir, stat
 import numpy as np
 from random import shuffle
@@ -38,7 +40,6 @@ from ..io.output import output
 from ..units.units import convert
 from copy import copy
 # from natsort import natsorted
-
 
 class Scraper:
 
