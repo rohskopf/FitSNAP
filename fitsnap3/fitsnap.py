@@ -37,6 +37,7 @@ from .solvers.solver_factory import solver
 from .io.output import output
 from .io.input import config
 
+
 class FitSnap:
     def __init__(self):
         self.scraper = scraper(config.sections["SCRAPER"].scraper)
