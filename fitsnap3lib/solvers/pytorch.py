@@ -95,10 +95,17 @@ try:
                                                                         threshold=0.0001,
                                                                         threshold_mode='abs')
 
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.device = "cpu"
             pt.single_print("Pytorch device is set to", self.device)
             self.training_data = None
             self.training_loader = None
+            
+            print("----- checking if model on cuda:")
+            print(next(self.model.parameters()).is_cuda)
+            self.model = self.model.to(self.device)
+            print("----- checking if model on cuda after sending to device:")
+            print(next(self.model.parameters()).is_cuda)
 
         def create_datasets(self):
             """
@@ -122,7 +129,8 @@ try:
                                               batch_size=config.sections["PYTORCH"].batch_size,
                                               shuffle=False,
                                               collate_fn=torch_collate,
-                                              num_workers=0)
+                                              num_workers=0,
+                                              pin_memory=True)
 
         @pt.sub_rank_zero
         def perform_fit(self):
@@ -154,6 +162,7 @@ try:
                 train_losses_step = []
                 loss = None
                 for i, batch in enumerate(self.training_loader):
+                    #print(f"----- {i}")
                     self.model.train()
                     descriptors = batch['x'].to(self.device).requires_grad_(True)
                     targets = batch['y'].to(self.device).requires_grad_(True)
@@ -163,7 +172,9 @@ try:
                     dgrad = batch['dgrad'].to(self.device).requires_grad_(True)
                     dbdrindx = batch['dbdrindx'].to(self.device)
                     unique_j = batch['unique_j'].to(self.device)
-                    (energies,forces) = self.model(descriptors, dgrad, indices, num_atoms, dbdrindx, unique_j)
+                    #print("----- before model")
+                    (energies,forces) = self.model(descriptors, dgrad, indices, num_atoms, dbdrindx, unique_j, self.device)
+                    #print("----- after model")
 
                     if (self.energy_weight != 0):
                         energies = energies.to(self.device)
@@ -173,13 +184,15 @@ try:
                     if (epoch == config.sections["PYTORCH"].num_epochs-1):
 
                         if (self.force_weight !=0):
-                            target_force_plot.append(target_forces.detach().numpy())
-                            model_force_plot.append(forces.detach().numpy())
+                            target_force_plot.append(target_forces.cpu().detach().numpy())
+                            model_force_plot.append(forces.cpu().detach().numpy())
                         if (self.energy_weight !=0):
-                            target_energy_plot.append(targets.detach().numpy())
-                            model_energy_plot.append(energies.detach().numpy())
+                            target_energy_plot.append(targets.cpu().detach().numpy())
+                            model_energy_plot.append(energies.cpu().detach().numpy())
 
                     # assert that model and target force dimensions match
+                    
+                    #print("-----")
 
                     if (self.force_weight !=0):
                         assert target_forces.size() == forces.size()

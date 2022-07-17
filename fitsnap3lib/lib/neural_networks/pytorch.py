@@ -64,8 +64,9 @@ class FitTorch(torch.nn.Module):
             self.energy_bool = False
         if (force_weight==0.0):
             self.force_bool = False
+            
 
-    def forward(self, x, xd, indices, atoms_per_structure, xd_indx, unique_j):
+    def forward(self, x, xd, indices, atoms_per_structure, xd_indx, unique_j, device):
         """
         Saves lammps ready pytorch model.
 
@@ -77,13 +78,23 @@ class FitTorch(torch.nn.Module):
                 xd_indx (tensor of int64, long ints): array of indices corresponding to descriptor derivatives
                 unique_j (tensor of int64, long ints): array of indices corresponding to unique atoms j in all batches of configs.
                                                        all forces in this batch will be contracted over these indices.
+                device: accelerator device
+                                                       
 
         """
+        
+        #print(x.device)
+        #print(xd.device)
+        #print(indices.device)
+        #print(atoms_per_structure.device)
+        #print(xd_indx.device)
+        #print(unique_j.device)
 
         # calculate energies
 
         if (self.energy_bool):
             predicted_energy_total = torch.zeros(atoms_per_structure.size())
+            #print(predicted_energy_total.device)
             predicted_energy_total.index_add_(0, indices, self.network_architecture(x).squeeze())
         else:
             predicted_energy_total = None
@@ -92,13 +103,24 @@ class FitTorch(torch.nn.Module):
 
         if (self.force_bool):
             nd = x.size()[1] # number of descriptors
+            #print(nd.device)
             natoms = atoms_per_structure.sum() # Total number of atoms in this batch
+            #print(natoms.device)
 
             x_indices = xd_indx[0::3]
             y_indices = xd_indx[1::3]
             z_indices = xd_indx[2::3]
             neigh_indices = xd_indx[0::3,0] # neighbors i of atoms j
+            
+            #print("----- indices:")
+            
+            #print(x_indices.device)
+            #print(neigh_indices.device)
+            
             dEdD = torch.autograd.grad(self.network_architecture(x), x, grad_outputs=torch.ones_like(self.network_architecture(x)), create_graph=True)[0]
+            
+            #print("----- dEdD:")
+            #print(dEdD.device)
 
             # extract proper dE/dD values to align with neighbors i of atoms j
 
@@ -106,18 +128,25 @@ class FitTorch(torch.nn.Module):
             dDdRx = xd[0::3] #.requires_grad_(True)
             dDdRy = xd[1::3] #.requires_grad_(True)
             dDdRz = xd[2::3] #.requires_grad_(True)
+            
+            #print("----- dDdRx:")
+            #print(dDdRx.device)
 
             # elementwise multiplication of dDdR and dEdD
 
             elementwise_x = torch.mul(dDdRx, dEdD) #.requires_grad_(True)
             elementwise_y = torch.mul(dDdRy, dEdD) #.requires_grad_(True)
             elementwise_z = torch.mul(dDdRz, dEdD) #.requires_grad_(True)
+            #print("----- elementwise_x:")
+            #print(elementwise_x.device)
 
             # contract these elementwise components along rows with indices given by unique_j
 
-            fx_components = torch.zeros(atoms_per_structure.sum(),nd) #.double() #.requires_grad_(True)
-            fy_components = torch.zeros(atoms_per_structure.sum(),nd) #.double() #.requires_grad_(True)
-            fz_components = torch.zeros(atoms_per_structure.sum(),nd) #.double() #.requires_grad_(True)
+            fx_components = torch.zeros(atoms_per_structure.sum(),nd).to(device) #.double() #.requires_grad_(True)
+            fy_components = torch.zeros(atoms_per_structure.sum(),nd).to(device) #.double() #.requires_grad_(True)
+            fz_components = torch.zeros(atoms_per_structure.sum(),nd).to(device) #.double() #.requires_grad_(True)
+            #print("----- fx_components:")
+            #print(fx_components.device)
 
             # contract over every 3rd value of unique j indices, which has same number of rows as dgrad
 
@@ -139,7 +168,7 @@ class FitTorch(torch.nn.Module):
 
             # check that number of rows is equal to number of atoms
 
-            assert predicted_fx.size()[0] == natoms
+            #assert predicted_fx.size()[0] == natoms
 
             # create a 3Nx1 array
 
@@ -149,7 +178,7 @@ class FitTorch(torch.nn.Module):
             # don't need to multiply by -1 since compute snap already gives us negative derivatives
 
             predicted_forces = torch.flatten(predicted_forces).float() #.requires_grad_(True) # need to be float to match targets
-            assert predicted_forces.size()[0] == 3*natoms
+            #assert predicted_forces.size()[0] == 3*natoms
 
         else:
             predicted_forces = None
