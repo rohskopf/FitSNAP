@@ -1,0 +1,43 @@
+LAMMPS (24 Mar 2022)
+#echo screen
+
+newton on
+boundary	 	 p p p
+units	 	 	 metal
+atom_style	 	 atomic
+atom_modify sort 1 1000.0
+
+read_data DATA
+Reading data file ...
+  orthogonal box = (0 0 0) to (3.4 3.4 3.4)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  4 atoms
+  read_data CPU = 0.001 seconds
+
+# Input variables
+variable nthermo equal 1000 # for production run
+variable nsteps equal 2000000 # Number of timesteps in production run.
+variable temperature equal 300.0 # Desired simulation temperature.
+
+# Define regions and groups
+
+# Neighborlist commands
+neighbor    1.0 bin
+#neigh_modify once yes
+
+# Potential
+# Definition of SNAP potential Ta_Cand06A
+# Assumes 1 LAMMPS atom type
+
+variable zblcutinner equal 4
+variable zblcutouter equal 4.8
+variable zblz equal 73
+
+# Specify hybrid with SNAP, ZBL
+
+pair_style hybrid/overlay zbl ${zblcutinner} ${zblcutouter} mliap model mliappy Ta06A.mliap.model descriptor sna Ta06A.mliap.descriptor
+pair_style hybrid/overlay zbl 4 ${zblcutouter} mliap model mliappy Ta06A.mliap.model descriptor sna Ta06A.mliap.descriptor
+pair_style hybrid/overlay zbl 4 4.8 mliap model mliappy Ta06A.mliap.model descriptor sna Ta06A.mliap.descriptor
+ERROR: Illegal pair_style mliap command 2 (../pair_mliap.cpp:168)
+Last command: pair_style hybrid/overlay zbl ${zblcutinner} ${zblcutouter} mliap model mliappy Ta06A.mliap.model descriptor sna Ta06A.mliap.descriptor
