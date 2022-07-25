@@ -49,7 +49,7 @@ class FitTorch(torch.nn.Module):
         self.desc_len = descriptor_count
         self.n_elem = n_elements
 
-    def forward(self, x, indices, atoms_per_structure):
+    def forward(self, x, indices, atoms_per_structure, device):
         """
         Saves lammps ready pytorch model.
 
@@ -57,10 +57,11 @@ class FitTorch(torch.nn.Module):
                 x (tensor of floats): Array of descriptors
                 indices (tensor of ints): Array of indices upon which to contract per atom energies
                 atoms_per_structure (tensor of ints): Number of atoms per configuration
+                device: pytorch accelerator device
 
         """
 
-        predicted_energy_total = torch.zeros(atoms_per_structure.size())
+        predicted_energy_total = torch.zeros(atoms_per_structure.size()).to(device)
         predicted_energy_total.index_add_(0, indices, self.network_architecture(x).squeeze())
         return predicted_energy_total
 

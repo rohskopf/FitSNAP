@@ -78,9 +78,10 @@ class FitSnap:
 
     @pt.single_timeit
     def write_output(self):
-        print("fitsnap.py:")
-        print(self.solver.fit)
-        print(self.solver.w)
+        #print("fitsnap.py:")
+        #print(self.solver.fit)
+        #print(self.solver.w)
         if not config.args.perform_fit:
             return
-        output.output(self.solver.fit, self.solver.errors)
+        # comment this out to prevent output error with nonlinear solvers, which is fixed in recent versions.
+        #output.output(self.solver.fit, self.solver.errors)

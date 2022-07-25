@@ -85,6 +85,8 @@ try:
                                                                         threshold_mode='abs')
 
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            #self.device = "cpu"
+            self.model = self.model.to(self.device)
             pt.single_print("Pytorch device is set to", self.device)
             self.training_data = None
             self.training_loader = None
@@ -132,7 +134,7 @@ try:
                     targets = batch['y'].to(self.device).requires_grad_(True)
                     indices = batch['i'].to(self.device)
                     num_atoms = batch['noa'].to(self.device)
-                    energies = torch.reshape(self.model(descriptors, indices, num_atoms), (-1,)).to(self.device)
+                    energies = torch.reshape(self.model(descriptors, indices, num_atoms, self.device), (-1,)).to(self.device)
                     loss = self.loss_function(energies/num_atoms, targets)
                     self.optimizer.zero_grad()
                     loss.backward()

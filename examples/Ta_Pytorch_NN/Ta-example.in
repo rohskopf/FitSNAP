@@ -24,10 +24,13 @@ stress = 0
 Ta = 0.0
 
 [PYTORCH]
-layer_sizes = num_desc 10 8 6 1
+layer_sizes = num_desc 10 8 6 1 # 1000 800 600 1 # GPU speedup seen mainly with large models (1000x800x600x1)
+												 # GPU slowdown seen with small models (10x8x6x1) and small batch size (4)
+												 # No difference between CPU and GPU for small models (10x8x6x1) and large batch size (363)
+												 # To change device to CPU, see solvers/pytorch.py line 87
 learning_rate = 5e-3
-num_epochs = 10 #800
-batch_size = 363
+num_epochs = 100
+batch_size = 4 #363
 save_state_output = Ta_Pytorch.pt
 # save_state_input = Ta_Pytorch.pt
 
