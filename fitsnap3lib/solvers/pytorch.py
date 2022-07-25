@@ -95,8 +95,8 @@ try:
                                                                         threshold=0.0001,
                                                                         threshold_mode='abs')
 
-            #self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.device = "cpu"
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            #self.device = "cpu"
             pt.single_print("Pytorch device is set to", self.device)
             self.training_data = None
             self.training_loader = None
