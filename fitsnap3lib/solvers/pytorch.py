@@ -111,7 +111,11 @@ try:
             """
 
             # this is not used, but may be useful later
-            #training = [not elem for elem in pt.fitsnap_dict['Testing']]
+            training = [not elem for elem in pt.fitsnap_dict['Testing']]
+            testing = [elem for elem in pt.fitsnap_dict['Testing']]
+            testing_indices = [i for i, x in enumerate(testing) if x]
+            print(len(testing_indices))
+            print(pt.shared_arrays['number_of_atoms'].array[0])
 
             # TODO: when only fitting to energy, we don't need all this extra data
 
@@ -124,29 +128,73 @@ try:
                                                      pt.shared_arrays["number_of_dgradrows"].array,
                                                      pt.shared_arrays["unique_j_indices"].array)
 
-            # randomly shuffle and split into training/validation data
+            split_option = 1 # 0 - randomly shuffle and split into training/validation data
+                             # 1 - take first nrows_test indices as test set, and rest as training
+            if (split_option == 0):
+                # randomly shuffle and split into training/validation data
 
-            if (self.training_fraction == 0.0):
-                raise Exception("Training fraction must be > 0.0 for now, later we might implement 0.0 training fraction for testing on a test set")
-            if ( (self.training_fraction > 1.0) or (self.training_fraction < 0.0) ):
-                raise Exception("Training fraction cannot be > 1.0 or < 0.0")
-            self.train_size = int(self.training_fraction * len(self.total_data))
-            self.test_size = len(self.total_data) - self.train_size
-            self.training_data, self.validation_data = torch.utils.data.random_split(self.total_data, [self.train_size, self.test_size])
+                if (self.training_fraction == 0.0):
+                    raise Exception("Training fraction must be > 0.0 for now, later we might implement 0.0 training fraction for testing on a test set")
+                if ( (self.training_fraction > 1.0) or (self.training_fraction < 0.0) ):
+                    raise Exception("Training fraction cannot be > 1.0 or < 0.0")
+                self.train_size = int(self.training_fraction * len(self.total_data))
+                self.test_size = len(self.total_data) - self.train_size
+                self.training_data, self.validation_data = torch.utils.data.random_split(self.total_data, [self.train_size, self.test_size])
 
-            # make training and validation data loaders for batch training
-            # not sure if shuffling=True works, but data.random_split() above shuffles the input data
+                # make training and validation data loaders for batch training
+                # not sure if shuffling=True works, but data.random_split() above shuffles the input data
+                
 
-            self.training_loader = DataLoader(self.training_data,
-                                              batch_size=config.sections["PYTORCH"].batch_size,
-                                              shuffle=False,
-                                              collate_fn=torch_collate,
-                                              num_workers=0)
-            self.validation_loader = DataLoader(self.validation_data,
-                                              batch_size=config.sections["PYTORCH"].batch_size,
-                                              shuffle=False,
-                                              collate_fn=torch_collate,
-                                              num_workers=0)
+                self.training_loader = DataLoader(self.training_data,
+                                                  batch_size=config.sections["PYTORCH"].batch_size,
+                                                  shuffle=False,
+                                                  collate_fn=torch_collate,
+                                                  num_workers=0)
+                self.validation_loader = DataLoader(self.validation_data,
+                                                  batch_size=config.sections["PYTORCH"].batch_size,
+                                                  shuffle=False,
+                                                  collate_fn=torch_collate,
+                                                  num_workers=0)
+
+            elif (split_option == 1):
+                # take a subset of data for testing, which are the first nrows_test rows
+                
+                nrows_test = 109
+                test_indices = list(range(0,nrows_test,1))
+                train_indices = list(range(nrows_test, len(self.total_data), 1))
+                #print(test_indices)
+                #print(train_indices)
+                
+                self.validation_data = torch.utils.data.Subset(self.total_data, test_indices)
+                self.training_data = torch.utils.data.Subset(self.total_data, train_indices)
+
+                # use random_split to shuffle the training data because shuffle might not work
+                train_size = len(self.training_data)
+                self.training_data, junk = torch.utils.data.random_split(self.training_data, [train_size,0])
+               
+                assert( len(self.validation_data) == nrows_test )
+                assert( len(self.training_data) == len(self.total_data) - nrows_test )
+
+                self.training_loader = DataLoader(self.training_data,
+                                                  batch_size=config.sections["PYTORCH"].batch_size,
+                                                  shuffle=False,
+                                                  collate_fn=torch_collate,
+                                                  num_workers=0)
+                self.validation_loader = DataLoader(self.validation_data,
+                                                  batch_size=config.sections["PYTORCH"].batch_size,
+                                                  shuffle=False,
+                                                  collate_fn=torch_collate,
+                                                  num_workers=0)              
+
+                
+
+                """
+                # example using torch subset:
+                evens = list(range(0, len(self.total_data), 2))
+                subset1 = torch.utils.data.Subset(self.total_data, evens)
+                print(len(self.total_data))
+                print(len(subset1))
+                """
 
         @pt.sub_rank_zero
         def perform_fit(self):

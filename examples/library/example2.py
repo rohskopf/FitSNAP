@@ -12,10 +12,15 @@ groups), by commenting them out in the GROUPS section.
 python example2.py --fitsnap_in ../Ta_Linear_JCP2014/Ta-example.in --test_dir ../Ta_Linear_JCP2014/Test_Set_Example/
 """
 # set pair style commands
-
+"""
 pairstyle = ["pair_style hybrid/overlay zbl 4.0 4.8 snap",
              "pair_coeff * * zbl 73 73",
              "pair_coeff * * snap ../Ta_Linear_JCP2014/Ta_pot.snapcoeff ../Ta_Linear_JCP2014/Ta_pot.snapparam Ta"]
+"""
+
+pairstyle = ["pair_style snap",
+             "pair_coeff * * ../Ta_Linear_JCP2014/Ta_pot.snapcoeff ../Ta_Linear_JCP2014/Ta_pot.snapparam Ta"]
+
 
 import numpy as np
 #from mpi4py import MPI # maybe we can parallelize later for huge test sets... no need now

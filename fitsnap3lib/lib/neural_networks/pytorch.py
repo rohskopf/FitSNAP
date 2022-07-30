@@ -13,6 +13,8 @@ def create_torch_network(layer_sizes):
     """
     Creates a pytorch network architecture from layer sizes.
     This also performs standarization in the first linear layer.
+    We disguise standardization by introducing a first linear layer of size equal to 
+    number of descriptors.
     This only supports softplus as the nonlinear activation function.
 
         Parameters:
@@ -55,6 +57,7 @@ class FitTorch(torch.nn.Module):
         """
         super().__init__()
         self.network_architecture = network_architecture
+        print(self.network_architecture)
         self.desc_len = descriptor_count
         self.n_elem = n_elements
 

@@ -10,13 +10,13 @@ type = Ta
 wselfallflag = 0
 chemflag = 0
 bzeroflag = 0
-quadraticflag = 0
+quadraticflag = 1
 
 [CALCULATOR]
 calculator = LAMMPSSNAP
 energy = 1
 force = 1
-stress = 1
+stress = 0
 
 [ESHIFT]
 Ta = 0.0
@@ -39,9 +39,11 @@ potential = Ta_pot
 [REFERENCE]
 units = metal
 atom_style = atomic
-pair_style = hybrid/overlay zero 10.0 zbl 4.0 4.8
-pair_coeff1 = * * zero
-pair_coeff2 = * * zbl 73 73
+pair_style = zero 10.0
+pair_coeff = * *
+#pair_style = hybrid/overlay zero 10.0 zbl 4.0 4.8
+#pair_coeff1 = * * zero
+#pair_coeff2 = * * zbl 73 73
 
 [GROUPS]
 # name size eweight fweight vweight
@@ -49,18 +51,18 @@ group_sections = name training_size testing_size eweight fweight vweight
 group_types = str float float float float float
 smartweights = 0
 random_sampling = 0
-Displaced_A15 =  1.0    0.0       100             1               1.00E-08
-Displaced_BCC =  1.0    0.0       100             1               1.00E-08
-Displaced_FCC =  1.0    0.0       100             1               1.00E-08
-Elastic_BCC   =  1.0    0.0     1.00E-08        1.00E-08        0.0001
-Elastic_FCC   =  1.0    0.0     1.00E-09        1.00E-09        1.00E-09
-GSF_110       =  1.0    0.0      100             1               1.00E-08
-GSF_112       =  1.0    0.0      100             1               1.00E-08
-Liquid        =  1.0    0.0       4.67E+02        1               1.00E-08
-Surface       =  1.0    0.0       100             1               1.00E-08
-Volume_A15    =  1.0    0.0      1.00E+00        1.00E-09        1.00E-09
-Volume_BCC    =  1.0    0.0      1.00E+00        1.00E-09        1.00E-09
-Volume_FCC    =  1.0    0.0      1.00E+00        1.00E-09        1.00E-09
+Displaced_A15 =  1.0    0.0       1e-6             1               0.0
+Displaced_BCC =  1.0    0.0       1e-6             1               0.0
+Displaced_FCC =  1.0    0.0       1e-6             1              0.0
+Elastic_BCC   =  1.0    0.0     1e-6        1          0.0
+Elastic_FCC   =  1.0    0.0     1e-6       1         0.0
+GSF_110       =  1.0    0.0      1e-6             1                0.0
+GSF_112       =  1.0    0.0      1e-6             1                0.0
+#Liquid        =  1.0    0.0       1e-6       1               0.0
+#Surface       =  1.0    0.0       1e-6             1               0.0
+#Volume_A15    =  1.0    0.0      1.00E+00        1.00E-09        0.0
+#Volume_BCC    =  1.0    0.0      1.00E+00        1.00E-09        0.0
+#Volume_FCC    =  1.0    0.0      1.00E+00        1.00E-09        0.0
 
 [EXTRAS]
 dump_descriptors = 1
