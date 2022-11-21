@@ -36,6 +36,7 @@ class Calculator(Section):
         # flag for NN + empirical potential fitting
 
         self.empiricalflag = self.get_value("CALCULATOR", "empiricalflag", "0", "bool")
+        self.pt.add_2_fitsnap("empiricalflag", self.empiricalflag)
 
         # post-process some inputs
 

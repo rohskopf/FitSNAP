@@ -32,3 +32,7 @@ class Configuration():
         # per-atom scalar quantities
 
         self.pas = None
+
+        # empirical potential geometries
+
+        self.rij = None

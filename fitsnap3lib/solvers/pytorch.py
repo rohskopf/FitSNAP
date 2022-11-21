@@ -139,6 +139,7 @@ try:
             indx_natoms_low = 0
             indx_forces_low = 0
             indx_dgrad_low = 0
+            indx_neighlist_low = 0
             for i, config in enumerate(self.configs):
                 
                 indx_natoms_high = indx_natoms_low + config.natoms
@@ -158,6 +159,20 @@ try:
 
                 if (self.pt.fitsnap_dict['per_atom_scalar']):
                     config.pas = self.pt.shared_arrays['pas'].array[indx_natoms_low:indx_natoms_high]
+
+                if (self.pt.fitsnap_dict['empiricalflag']):
+                    nrows_neighlist = int(self.pt.fitsnap_dict["NumNeighs"][i])
+                    indx_neighlist_high = indx_neighlist_low + nrows_neighlist
+                    config.neighlist = self.pt.shared_arrays['neighlist'].array[indx_neighlist_low:indx_neighlist_high,0:2]
+                    config.rij = self.pt.shared_arrays['rij'].array[indx_neighlist_low:indx_neighlist_high]
+
+                    # dictionaries contain per-config info
+                    
+                    config.numneigh = int(self.pt.fitsnap_dict['NumNeighs'][i])
+
+                    # update neighlist indx
+
+                    indx_neighlist_low += nrows_neighlist
 
                 config.filename = self.pt.fitsnap_dict['Configs'][i]
                 config.testing_bool = self.pt.fitsnap_dict['Testing'][i]
