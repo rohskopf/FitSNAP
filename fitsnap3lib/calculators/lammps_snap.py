@@ -105,6 +105,31 @@ class LammpsSnap(LammpsBase):
         command = f"{base_snap} {radelem} {wj} {kwargs}"
         self._lmp.command(command)
 
+    def calculate_descriptors(self,x,neighlist,xneigh):
+        """
+        Calculator rij for the empirical potential solver.
+        NOTE: Might add angles here for future empirical potential possibilities.
+              Can also include custom-coded descriptors.
+              Therefore nice to keep as a separate function for now.
+
+        Args:
+            x (ndarray): Array of positions with size (num_neigh,3), these are atoms i with repeated 
+                indices to match the dimensions in `neighlist`. 
+            neighlist (ndarray): Neighbor list of integers with size (num_neigh, 2); first column is 
+                atom i and second column is atom j. 
+            xneigh (ndarray): Array of positions for each atom, indicies correspond with `neighlist`, 
+                with size (num_neigh, 3).
+
+        Returns:
+            Array of rij for each pair with size (num_neigh, ).
+        """
+
+        diff = x[neighlist[:,0]] - xneigh
+        rij = np.linalg.norm(diff, axis=1) #[:,None]
+        #rij = np.reshape(rij, (len(rij),-1)) # transform to (num_neigh,1)
+
+        return rij
+
     def _collect_lammps_nonlinear(self):
         num_atoms = self._data["NumAtoms"]
         num_types = self.config.sections['BISPECTRUM'].numtypes
@@ -153,6 +178,7 @@ class LammpsSnap(LammpsBase):
         index_b = self.shared_index_b
         index_c = self.shared_index_c
         index_dgrad = self.shared_index_dgrad
+        index_neighlist = self.shared_index_neighlist
 
         # extract the useful parts of the snap array
 
@@ -197,6 +223,50 @@ class LammpsSnap(LammpsBase):
             self.pt.shared_arrays['dbdrindx'].array[index_dgrad:(index_dgrad+nrows_dgrad)] = dgrad_indices
             index_dgrad += nrows_dgrad
 
+        if (self.config.sections['CALCULATOR'].empiricalflag):
+            ptr_pos = self._lmp.extract_atom('x')
+
+            # look up the neighbor list
+
+            nlidx = self._lmp.find_pair_neighlist('zero')
+            nl = self._lmp.numpy.get_neighlist(nlidx)
+            tags = self._lmp.extract_atom('id')
+            number_of_neighs = 0 # number of neighs for this config
+            num_neighs_per_atom = []
+            neighlist = []
+            xneighs = []
+            transform_x = []
+            for i in range(0,nl.size):
+                idx, nlist  = nl.get(i)
+                num_neighs_i = 0
+                if nlist.size > 0:
+                    for n in np.nditer(nlist):
+                        num_neighs_i += 1
+                        neighlist.append([tags[idx], tags[n]])
+                        xneighs.append([ptr_pos[n][0], ptr_pos[n][1], ptr_pos[n][2]])
+                        transform_x.append([ptr_pos[n][0]-lmp_pos[tags[n]-1,0], \
+                                            ptr_pos[n][1]-lmp_pos[tags[n]-1,1], \
+                                            ptr_pos[n][2]-lmp_pos[tags[n]-1,2]])
+
+                num_neighs_per_atom.append(num_neighs_i)
+                number_of_neighs += num_neighs_i
+
+            num_neighs_per_atom = np.array(num_neighs_per_atom)
+            assert(np.sum(num_neighs_per_atom) == number_of_neighs)
+            neighlist = np.array(neighlist, dtype=int) - 1 # subtract 1 to get indices starting from 0
+            xneighs = np.array(xneighs)
+            transform_x = np.array(transform_x)
+
+            rij = self.calculate_descriptors(self._data["Positions"], neighlist, xneighs)
+            assert(np.shape(rij)[0] == number_of_neighs)
+
+            # populate the neighlist arrays
+
+            nrows_neighlist = number_of_neighs
+            self.pt.shared_arrays['neighlist'].array[index_neighlist:(index_neighlist+nrows_neighlist)] = neighlist
+            self.pt.shared_arrays['rij'].array[index_neighlist:(index_neighlist+nrows_neighlist)] = rij
+            index_neighlist += nrows_neighlist
+
         # populate the fitsnap dicts
         # these are distributed lists and therefore have different size per proc, but will get 
         # gathered later onto the root proc in calculator.collect_distributed_lists
@@ -212,6 +282,9 @@ class LammpsSnap(LammpsBase):
         if (self.config.sections['CALCULATOR'].force):
             self.pt.fitsnap_dict['NumDgradRows'][self.distributed_index:dindex] = ['{}'.format(nrows_dgrad)]
 
+        if (self.config.sections['CALCULATOR'].empiricalflag):
+            self.pt.fitsnap_dict['NumNeighs'][self.distributed_index:dindex] = ['{}'.format(nrows_neighlist)]
+
         # reset indices since we are stacking data in the shared arrays
 
         self.shared_index = index
@@ -219,6 +292,7 @@ class LammpsSnap(LammpsBase):
         self.shared_index_b = index_b
         self.shared_index_c = index_c
         self.shared_index_dgrad = index_dgrad
+        self.shared_index_neighlist = index_neighlist
 
     def _collect_lammps(self):
 
@@ -418,3 +492,25 @@ class LammpsSnap(LammpsBase):
         natoms_sliced = self.pt.shared_arrays['number_of_atoms'].sliced_array[self._i]
         assert(natoms_sliced==num_atoms)
         self.pt.shared_arrays['number_of_dgrad_rows'].sliced_array[self._i] = nrows_dgrad
+
+        # pre-processing for empirical potential
+
+        if self.config.sections['CALCULATOR'].empiricalflag:
+
+            # look up the neighbor list
+
+            nlidx = self._lmp.find_pair_neighlist('zero')
+            nl = self._lmp.numpy.get_neighlist(nlidx)
+            tags = self._lmp.extract_atom('id')
+            number_of_neighs = 0
+            num_neighs_per_atom = []
+            for i in range(0,nl.size):
+                idx, nlist  = nl.get(i)
+                num_neighs_i = 0
+                if nlist.size > 0:
+                    for n in np.nditer(nlist):
+                        num_neighs_i += 1
+                num_neighs_per_atom.append(num_neighs_i)
+                number_of_neighs += num_neighs_i
+
+            self.pt.shared_arrays['number_of_neighs_scrape'].sliced_array[self._i] = number_of_neighs

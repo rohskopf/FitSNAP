@@ -11,7 +11,7 @@ class Calculator(Section):
         super().__init__(name, config, args)
         self.pt = ParallelTools()
         self.allowedkeys = ['calculator', 'energy', 'per_atom_energy', 'force', 'stress', \
-                            'nonlinear', 'per_atom_scalar']
+                            'nonlinear', 'per_atom_scalar', 'empiricalflag']
         self._check_section()
 
         self.calculator = self.get_value("CALCULATOR", "calculator", "LAMMPSSNAP")
@@ -33,6 +33,11 @@ class Calculator(Section):
 
         self.pt.add_2_fitsnap("nonlinear", self.nonlinear)
 
+        # flag for NN + empirical potential fitting
+
+        self.empiricalflag = self.get_value("CALCULATOR", "empiricalflag", "0", "bool")
+
+        # post-process some inputs
 
         if (self.nonlinear):
             self.linear = False

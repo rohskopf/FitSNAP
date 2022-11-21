@@ -40,7 +40,9 @@ class Calculator:
             a_len = 0
             b_len = 0 # number reference energies for all configs
             c_len = 0 # number of reference forces for all configs
-            dgrad_len = 0
+            dgrad_len = 0 # number of nonzero descriptors gradients for all configs
+            neighlist_len = 0 # number of neighbors for all configs, used if empiricalflag = 1
+
             if self.config.sections["CALCULATOR"].energy:
                 energy_rows = self.number_of_files_per_node
                 if self.config.sections["CALCULATOR"].per_atom_energy:
@@ -58,6 +60,8 @@ class Calculator:
 
                 a_len += self.number_of_atoms # total number of atoms in all configs
 
+            if self.config.sections["CALCULATOR"].empiricalflag:
+                neighlist_len += self.pt.shared_arrays["number_of_neighs_scrape"].array.sum()
 
 #            # stress fitting not supported yet.
 #            if config.sections["CALCULATOR"].stress:
@@ -86,9 +90,16 @@ class Calculator:
             self.pt.create_shared_array('w', b_len, 2, tm=self.config.sections["SOLVER"].true_multinode)
             self.pt.create_shared_array('t', a_len, 1, tm=self.config.sections["SOLVER"].true_multinode)
             if self.config.sections["CALCULATOR"].per_atom_scalar:
-                # create per-atom scalar arrays
                 self.pt.create_shared_array('pas', a_len, 1, tm=self.config.sections["SOLVER"].true_multinode)
+            if self.config.sections["CALCULATOR"].empiricalflag:
+                # neighlist has two columns for i and j indices
+                self.pt.create_shared_array('neighlist', neighlist_len, 2, 
+                                            tm=self.config.sections["SOLVER"].true_multinode)
+                # rij has 1 column for the pairwise distance
+                self.pt.create_shared_array('rij', neighlist_len, 1, 
+                                            tm=self.config.sections["SOLVER"].true_multinode)
 
+            # TODO: Only do this if force = 1
             #if self.config.sections["CALCULATOR"].force:
             self.pt.create_shared_array('dgrad', dgrad_len, a_width, 
                                         tm=self.config.sections["SOLVER"].true_multinode)
@@ -107,16 +118,26 @@ class Calculator:
             #self.pt.new_slice_t() # atom types
 
             # make an index for which the 'dgrad' array starts on a particular proc
+            # TODO: Only do this if force = 1
+            
             self.pt.new_slice_dgrad()
             self.shared_index_dgrad = self.pt.fitsnap_dict["sub_dgrad_indices"][0]
 
+            # make an index for which the neighlist arrays start on a particular proc
+            # TODO: Only do this if empiricalflag = 1
+
+            self.pt.new_slice_neighlist()
+            self.shared_index_neighlist = self.pt.fitsnap_dict["sub_neighlist_indices"][0] 
+
             # create fitsnap dicts - distributed lists of size nconfig per proc
             # these later get gathered on the root proc in calculator.gather_distributed_lists
+            # TODO: Some of these aren't always needed, e.g. if empiricalflag = force = 0
 
             self.pt.add_2_fitsnap("Groups", DistributedList(self.nconfigs))
             self.pt.add_2_fitsnap("Configs", DistributedList(self.nconfigs))
             self.pt.add_2_fitsnap("NumAtoms", DistributedList(self.nconfigs))
             self.pt.add_2_fitsnap("NumDgradRows", DistributedList(self.nconfigs))
+            self.pt.add_2_fitsnap("NumNeighs", DistributedList(self.nconfigs))
             self.pt.add_2_fitsnap("Testing", DistributedList(self.nconfigs))
 
         # get data arrays for network solvers

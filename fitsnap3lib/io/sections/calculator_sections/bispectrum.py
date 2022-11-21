@@ -64,6 +64,7 @@ class Bispectrum(Section):
         self.switchflag = self.get_value("BISPECTRUM", "switchflag", "1", "bool")
         # dgradflag true enables per-neighbor descriptor derivatives for nonlinear force Fitting
         self.dgradflag = self.get_value("BISPECTRUM", "dgradflag", "0", "bool")
+
         self.delete()
 
     def _generate_b_list(self):
