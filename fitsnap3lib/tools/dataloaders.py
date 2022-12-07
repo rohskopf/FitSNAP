@@ -75,6 +75,14 @@ class InRAMDatasetPyTorch(InRAMDataset):
             assert(self.configs[idx].energy is None and self.configs[idx].forces is None)
             target = torch.tensor(self.configs[idx].pas).float()
 
+        if ( (self.configs[idx].neighlist is not None) and (self.configs[idx].rij is not None)):
+            # we're fitting an empirical model that depends on rij terms
+            rij = torch.tensor(self.configs[idx].rij).float()
+            neighlist = torch.tensor(self.configs[idx].neighlist).long()
+        else:
+            rij = None
+            neighlist = None
+
         number_of_atoms = torch.tensor(self.configs[idx].natoms)
 
         configuration = {'x': config_descriptors,
@@ -85,6 +93,8 @@ class InRAMDatasetPyTorch(InRAMDataset):
                          'w': weights,
                          'dgrad': dgrad,
                          'dbdrindx': dbdrindx,
+                         'rij': rij,
+                         'neighlist': neighlist,
                          'configs': self.configs[idx]}
 
         return configuration
@@ -119,6 +129,28 @@ def torch_collate(batch):
         batch_of_target_forces = None
         batch_of_dgrad = None
         batch_of_dbdrindx = None
+
+    if ( (batch[0]['neighlist'] is not None) and (batch[0]['rij'] is not None) ):
+        # we're fitting an empirical potential
+        #batch_of_neighlist = torch.cat([conf['neighlist'] for conf in batch], dim=0)
+        batch_of_rij = torch.cat([conf['rij'] for conf in batch], dim=0)
+
+        # we need to create unique indices out of this neighlist, similar to unique_i and unique_j
+        natoms_grow = 0
+        unique_i_indices = []
+        unique_j_indices = []
+        for i, conf in enumerate([conf['configs'] for conf in batch]):
+            unique_i_indices.append(torch.tensor(conf.neighlist[:,0]+natoms_grow).long())
+            unique_j_indices.append(torch.tensor(conf.neighlist[:,1]+natoms_grow).long())
+            natoms_grow += conf.natoms
+
+        # make batch of unique indices (ui) for empirical interatomic potential (eip)
+
+        batch_of_ui_eip = torch.cat(unique_i_indices, dim=0)
+        batch_of_uj_eip = torch.cat(unique_j_indices, dim=0)
+    else:
+        batch_of_ui_eip = None
+        batch_of_uj_eip = None
 
     # make indices upon which to contract per-atom energies for this batch
 
@@ -170,6 +202,9 @@ def torch_collate(batch):
                       'dbdrindx': batch_of_dbdrindx,
                       'unique_j': batch_of_unique_j,
                       'unique_i': batch_of_unique_i,
+                      'rij': batch_of_rij,
+                      'ui_eip': batch_of_ui_eip,
+                      'uj_eip': batch_of_uj_eip,
                       'testing_bools': batch_of_testing_bools}
 
     return collated_batch

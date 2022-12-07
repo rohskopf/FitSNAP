@@ -89,7 +89,8 @@ class FitTorch(torch.nn.Module):
         self.energy_bool = True
         self.force_bool = force_bool
 
-    def forward(self, x, xd, indices, atoms_per_structure, types, xd_indx, unique_j, unique_i, device, dtype=torch.float32):
+    def forward(self, x, xd, indices, atoms_per_structure, types, xd_indx, unique_j, unique_i, 
+                rij, ui_eip, uj_eip, device, dtype=torch.float32):
         """
         Forward pass through the PyTorch network model, calculating both energies and forces.
 
@@ -138,6 +139,13 @@ class FitTorch(torch.nn.Module):
         if (self.energy_bool):
             predicted_energy_total = torch.zeros(atoms_per_structure.size(), dtype=dtype).to(device)
             predicted_energy_total.index_add_(0, indices, per_atom_energies.squeeze())
+
+            # calculate empirical potential energy
+
+            if rij is not None:
+                print(rij)
+                predicted_energy_total += self.morse(rij, ui_eip, uj_eip, indices, atoms_per_structure.sum(), atoms_per_structure.size(), device, dtype)
+                assert(False)
         else:
             predicted_energy_total = None
 
@@ -285,3 +293,42 @@ class FitTorch(torch.nn.Module):
         for i, key in enumerate(new_dict.keys()):
             new_dict[key] = model_state_dict[list_of_old_keys[i]]
         self.load_state_dict(new_dict)
+
+    def morse(self, rij, ui, uj, indices, natoms, nconfigs, device, dtype):
+        """
+        Calculate Morse potential energy
+        
+        Args:
+            rij (tensor of floats): Pairwise distance between all pairs.
+            ui (tensor of long ints): Atoms i in this batch starting from 0.
+            uj (tensor of long ints): Neighbors j of i in this batch.
+            indices (tensor of long ints): Indices upon which to contract atom energies.
+        """
+
+        d0 = 1.0
+        alpha = 1.0
+        r0 = 1.0
+        rc = 4.0
+
+        # apply pairwise Morse formula
+
+        exponent1 = torch.tensor(-2.*alpha*(rc-r0))
+        exponent2 = torch.tensor(-1.*alpha*(rc-r0))
+
+        phi_r = d0*(torch.exp(-2.*alpha*(rij-r0)) - 2.*torch.exp(-1.*alpha*(rij-r0)))
+        phi_rc = d0*(torch.exp(exponent1) - 2.*torch.exp(exponent2))
+        dphi_dr_rc = 2.*d0*alpha*(torch.exp(exponent2) - torch.exp(exponent1))
+
+        epair = phi_r - phi_rc - (rij-rc)*dphi_dr_rc
+
+        # calculate per-atom energies
+
+        eatom = etot = torch.zeros(natoms, dtype=dtype).to(device)
+        eatom.index_add_(0, ui, epair.squeeze())
+
+        # calculate per-config energies
+
+        etot = torch.zeros(nconfigs, dtype=dtype).to(device)
+        etot.index_add_(0, indices, eatom.squeeze())
+
+        return etot
