@@ -431,11 +431,20 @@ try:
                             unique_j = None
                             unique_i = None
 
+                        if (self.pt.fitsnap_dict['empiricalflag']):
+                            rij = batch['rij']
+                            ui_eip = batch['ui_eip']
+                            uj_eip = batch['uj_eip']
+                        else:
+                            rij = None
+                            ui_eip = None
+                            uj_eip = None
+
                         if (self.pt.fitsnap_dict['energy'] or (self.pt.fitsnap_dict['force'])):
                             # we are fitting energies/forces
                             (energies,forces) = self.model(descriptors, dgrad, indices, num_atoms, 
                                                            atom_types, dbdrindx, unique_j, unique_i, 
-                                                           self.device)
+                                                           rij, ui_eip, uj_eip, self.device)
                             energies = torch.div(energies,num_atoms)
                         else:
                             # calculate per-atom scalars

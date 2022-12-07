@@ -89,6 +89,18 @@ class FitTorch(torch.nn.Module):
         self.energy_bool = True
         self.force_bool = force_bool
 
+        # create learnable parameters for empirical potential
+
+        d0_1 = 0.01
+        d0_2 = 1.0
+        setattr(self, "d0", torch.nn.Parameter((d0_2 - d0_1) * torch.rand(1) + d0_1))
+        alpha_1 = 1.0
+        alpha_2 = 3.0
+        setattr(self, "alpha", torch.nn.Parameter((alpha_2 - alpha_1) * torch.rand(1) + alpha_1))
+        r0_1 = 1.5
+        r0_2 = 4.0
+        setattr(self, "r0", torch.nn.Parameter((r0_2 - r0_1) * torch.rand(1) + r0_1))
+
     def forward(self, x, xd, indices, atoms_per_structure, types, xd_indx, unique_j, unique_i, 
                 rij, ui_eip, uj_eip, device, dtype=torch.float32):
         """
@@ -143,9 +155,8 @@ class FitTorch(torch.nn.Module):
             # calculate empirical potential energy
 
             if rij is not None:
-                print(rij)
                 predicted_energy_total += self.morse(rij, ui_eip, uj_eip, indices, atoms_per_structure.sum(), atoms_per_structure.size(), device, dtype)
-                assert(False)
+                #assert(False)
         else:
             predicted_energy_total = None
 
@@ -305,10 +316,14 @@ class FitTorch(torch.nn.Module):
             indices (tensor of long ints): Indices upon which to contract atom energies.
         """
 
-        d0 = 1.0
-        alpha = 1.0
-        r0 = 1.0
-        rc = 4.0
+        rc = 5.0
+        #d0 = 1.0
+        #alpha = 1.0
+        #r0 = 1.0
+
+        d0 = getattr(self, "d0")
+        alpha = getattr(self, "alpha")
+        r0 = getattr(self, "r0")
 
         # apply pairwise Morse formula
 

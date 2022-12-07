@@ -28,12 +28,12 @@ Ta = 0.0
 
 [PYTORCH]
 layer_sizes = num_desc 32 16 1
-learning_rate = 5e-5 
-num_epochs = 1
+learning_rate = 5e-5
+num_epochs = 100
 batch_size = 4 # 363 configs in entire set
 save_state_output = Ta_Pytorch.pt
 energy_weight = 1e-2
-force_weight = 1.0
+force_weight = 1.0e-10
 #training_fraction = 0.7
 
 [SOLVER]
@@ -54,9 +54,11 @@ potential = Ta_pot
 [REFERENCE]
 units = metal
 atom_style = atomic
-pair_style = hybrid/overlay zero 5.0 zbl 4.0 4.8
-pair_coeff1 = * * zero
-pair_coeff2 = * * zbl 73 73
+pair_style = zero 5.0
+pair_coeff = * *
+#pair_style = hybrid/overlay zero 5.0 zbl 4.0 4.8
+#pair_coeff1 = * * zero
+#pair_coeff2 = * * zbl 73 73
 
 [GROUPS]
 # name size eweight fweight vweight
