@@ -308,20 +308,33 @@ class XYZ(Scraper):
 
             file_base = path.join(config.sections["PATH"].datapath, key)
 
+            print(file_base)
+            print(folder_files)
+            print(file_base.split('/')[-1] + ".xyz")
+
             if file_base.split('/')[-1] + ".extxyz" in folder_files:
                 file_name = file_base + ".extxyz"
             elif file_base.split('/')[-1] + ".xyz" in folder_files:
                 file_name = file_base + ".xyz"
+            #else:
+            #    raise FileNotFoundError("{}.xyz not found in {}".format(file_base, config.sections["PATH"].datapath))
             else:
-                raise FileNotFoundError("{}.xyz not found in {}".format(file_base, config.sections["PATH"].datapath))
+                file_name = file_base
+                file_base = file_base.split('/')[-1][:-4]
 
             if file_base + '.xyz' not in self.files or file_base + '.extxyz':
                 self.files[file_base] = []
                 self.configs[file_base] = []
-            else:
-                raise FileExistsError("{} was already found".format(file_base))
+            #else:
+            #    raise FileExistsError("{} was already found".format(file_base))
+
+
 
             self.files[file_base].append(file_name)
+
+            print(self.files)
+            print(self.configs)
+            #assert(False)
 
             if config.sections["SCRAPER"].read_group_scrape != "None":
                 with open(read_file, 'r') as fp:

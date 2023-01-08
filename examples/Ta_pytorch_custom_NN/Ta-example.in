@@ -3,9 +3,9 @@ numAtoms = 1
 numTypes = 1
 type = Ta
 #num_descriptors = 8 # number of descriptors for each pair
-num_radial = 8 # number of radial descriptors
-num_3body = 23 # number of 3body descriptors
-cutoff = 5.0 # if changing this cutoff, be sure to change pair zero cutoff in [REFERENCE]
+num_radial = 5 # number of radial descriptors
+num_3body = 12 # number of 3body descriptors
+cutoff = 3.0 # if changing this cutoff, be sure to change pair zero cutoff in [REFERENCE]
 
 [CALCULATOR]
 calculator = LAMMPSCUSTOM 
@@ -21,8 +21,8 @@ Ta = 0.0
 [NETWORK]
 layer_sizes = num_desc 32 16 1 
 learning_rate = 5e-4
-num_epochs = 150
-batch_size = 4 # 363 configs in entire set
+num_epochs = 100
+batch_size = 1 # 363 configs in entire set
 save_state_output = Ta_Pytorch.pt
 energy_weight = 1e-2
 force_weight = 1.0
@@ -35,10 +35,10 @@ compute_testerrs = 1
 detailed_errors = 1
 
 [SCRAPER]
-scraper = JSON
+scraper = XYZ #JSON
 
 [PATH]
-dataPath = ../Ta_Linear_JCP2014/JSON
+dataPath = ../Ta_XYZ/XYZ #../Ta_Linear_JCP2014/JSON
 
 [OUTFILE]
 metrics = Ta_metrics.md
@@ -47,7 +47,7 @@ potential = Ta_pot
 [REFERENCE]
 units = metal
 atom_style = atomic
-pair_style = zero 5.0 full 
+pair_style = zero 3.0 full 
 pair_coeff = * * 
 
 [GROUPS]
@@ -56,18 +56,19 @@ group_sections = name training_size testing_size eweight fweight vweight
 group_types = str float float float float float
 smartweights = 0
 random_sampling = 0
-Displaced_A15 =  0.7    0.3       100             1               1.00E-08
-Displaced_BCC =  0.7    0.3       100             1               1.00E-08
-Displaced_FCC =  0.7    0.3       100             1               1.00E-08
-Elastic_BCC   =  0.7    0.3     1.00E-08        1.00E-08        0.0001
-Elastic_FCC   =  0.7    0.3     1.00E-09        1.00E-09        1.00E-09
-GSF_110       =  0.7    0.3      100             1               1.00E-08
-GSF_112       =  0.7    0.3      100             1               1.00E-08
-Liquid        =  0.7    0.3       4.67E+02        1               1.00E-08
-Surface       =  0.7    0.3       100             1               1.00E-08
-Volume_A15    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
-Volume_BCC    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
-Volume_FCC    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
+#Displaced_A15 =  0.7    0.3       100             1               1.00E-08
+#Displaced_BCC =  1.0    0.0       100             1               1.00E-08
+Displaced_BCC_few =  1.0    0.0       100             1               1.00E-08
+#Displaced_FCC =  0.7    0.3       100             1               1.00E-08
+#Elastic_BCC   =  1.0    0.0     1.00E-08        1.00E-08        0.0001
+#Elastic_FCC   =  0.7    0.3     1.00E-09        1.00E-09        1.00E-09
+#GSF_110       =  0.7    0.3      100             1               1.00E-08
+#GSF_112       =  0.7    0.3      100             1               1.00E-08
+#Liquid        =  0.7    0.3       4.67E+02        1               1.00E-08
+#Surface       =  0.7    0.3       100             1               1.00E-08
+#Volume_A15    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
+#Volume_BCC    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
+#Volume_FCC    =  0.7    0.3      1.00E+00        1.00E-09        1.00E-09
 
 [EXTRAS]
 dump_descriptors = 1

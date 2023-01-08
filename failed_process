@@ -1,0 +1,13 @@
+Command '['/Users/adrohsk/bin/mpirun', '-np', '3', '-oversubscribe', '/Users/adrohsk/miniconda3/envs/fitsnap/bin/python', '-c', 'from test_examples import test_fitsnap_mpi; test_fitsnap_mpi()']' returned non-zero exit status 1.
+-------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code.. Per user-direction, the job has been aborted.
+-------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[59615,1],1]
+  Exit code:    1
+--------------------------------------------------------------------------
+

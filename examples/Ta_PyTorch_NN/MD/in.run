@@ -1,6 +1,6 @@
 # Initialize simulation
 
-variable nsteps index 1000
+variable nsteps index 0
 variable nrep equal 4
 variable a equal 3.316
 units           metal
@@ -30,7 +30,7 @@ variable zblz equal 73
 
 pair_style hybrid/overlay &
 zbl ${zblcutinner} ${zblcutouter} &
-mliap model mliappy ../FitTorch_Pytorch.pt &
+mliap model mliappy  ../FitTorch_Pytorch.pt 1 &
 descriptor sna Ta.mliap.descriptor
 pair_coeff 1 1 zbl ${zblz} ${zblz}
 pair_coeff * * mliap Ta

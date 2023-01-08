@@ -66,13 +66,13 @@ group_types = str float float float float float
 random_sampling = 0
 smartweights = 0
 
-MD-bcc_Te300K                   = 0.7 0.3 7248.125779  7.175309915 1.0E-12
+MD-bcc_Te300K                   = 1.0 0.0 7248.125779  7.175309915 1.0E-12
 EOS_100                         = 0.7 0.3 10.37680984  3.074864006 1.0E-12
-BCC-HCP-transition              = 0.7 0.3 2.39808552  2.320864338 1.0E-12
+#BCC-HCP-transition              = 0.7 0.3 2.39808552  2.320864338 1.0E-12
 #liquid_mag_old                  = 0.7 0.3 5.541998374  6.473010639 1.0E-12
-point_def                       = 0.7 0.3 17.23319884  11.24367978 1.0E-12
-CCMC-bcc-hcp-elastic_Jun2020    = 0.7 0.3 1.382681069  1.963203872 1.0E-12
-liquid_nonmag                   = 0.7 0.3 63.68593312  1.29692425 1.0E-12
+#point_def                       = 0.7 0.3 17.23319884  11.24367978 1.0E-12
+#CCMC-bcc-hcp-elastic_Jun2020    = 0.7 0.3 1.382681069  1.963203872 1.0E-12
+#liquid_nonmag                   = 0.7 0.3 63.68593312  1.29692425 1.0E-12
 
 [EXTRAS]
 dump_descriptors = 1

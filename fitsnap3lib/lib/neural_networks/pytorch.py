@@ -168,6 +168,20 @@ class FitTorch(torch.nn.Module):
                                        grad_outputs=torch.ones_like(per_atom_energies), 
                                        create_graph=True)[0]
 
+            print(x.size())
+            print(per_atom_energies.size())
+            print(dEdD.size())
+            x_np = x.detach().numpy()
+            e_np = per_atom_energies.detach().numpy()
+            de_np = dEdD.detach().numpy()
+            print(types)
+            #assert(False)
+            import numpy as np
+            np.savetxt("d.dat", x_np)
+            np.savetxt("e.dat", e_np)
+            np.savetxt("de.dat", de_np)
+            assert(False)
+
             # extract proper dE/dD values to align with neighbors i of atoms j
  
             dEdD_x = dEdD[neigh_indices_x, :]

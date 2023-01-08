@@ -206,11 +206,13 @@ try:
                                               shuffle=self.config.sections['PYTORCH'].shuffle_flag, #True
                                               collate_fn=torch_collate,
                                               num_workers=0)
+            """                                  
             self.validation_loader = DataLoader(self.validation_data,
                                               batch_size=self.config.sections["PYTORCH"].batch_size,
                                               shuffle=self.config.sections['PYTORCH'].shuffle_flag, #True
                                               collate_fn=torch_collate,
                                               num_workers=0)
+            """
 
         #@pt.sub_rank_zero
         def perform_fit(self):
