@@ -16,3 +16,5 @@ df = dataframe_tool.read_dataframe()
 # use peratom = False if total energy desired
 
 dataframe_tool.plot_agreement("Energy", fitting_set="Training", mode="Distribution", peratom=True)
+
+dataframe_tool.plot_agreement("Force", fitting_set="Training", mode="Distribution")

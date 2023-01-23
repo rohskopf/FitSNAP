@@ -444,6 +444,8 @@ class DataframeTools():
             if (mode=="Distribution"):
                 abs_diff = np.abs(truths-preds)
                 abs_truth = np.abs(truths)
+                mae = np.mean(abs_diff)
+                print(f"Force MAE: {mae} (eV/A)")
                 plt.scatter(abs_truth, abs_diff, c=colors, marker='o', alpha=0.5)
                 plt.xscale("log")
                 plt.yscale("log")
