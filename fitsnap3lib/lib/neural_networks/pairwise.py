@@ -85,6 +85,40 @@ class FitTorch(torch.nn.Module):
         self.bessel = Bessel(num_radial, cutoff) # Bessel object provides functions to calculate descriptors
         self.g3b = Gaussian3Body(num_3body, cutoff)
 
+    def calc_morse(self, params, rij):
+        """
+        Calculate Morse potential given input parameter tensor.
+
+        Args:
+            params (torch.tensor) : Morse parameters for each pair, size (num_neighs, 3). Columns 
+                                    are D, a, r0
+            rij (torch.tensor) : Pairwise distances for each pair, size (num_neighs, 1).
+        """
+
+        #print(rij.size())
+        #assert(False)
+
+        #print(rij.size())
+        #print(params[:,2].size())
+
+        #test = rij - params[:,2].unsqueeze(1)
+        #print(test.size())
+
+        # params[:,indx] is size (numneighs) so need to unsqueeze
+        d = params[:,0].unsqueeze(1)
+        a = params[:,1].unsqueeze(1)
+        r0 = params[:,2].unsqueeze(1)
+        term1 = torch.exp(-2.*a*(rij - r0))
+        term2 = 2.*torch.exp(-1.*a*(rij - r0))
+
+        # Pairwise energies eij is size (numneighs, 1)
+
+        eij = d*(term1 - term2)
+
+        print(eij.size())
+
+        assert(False)
+
     def forward(self, x, neighlist, transform_x, indices, atoms_per_structure, types, unique_i, unique_j, device, dtype=torch.float32):
         """
         Forward pass through the PyTorch network model, calculating both energies and forces.
@@ -160,11 +194,19 @@ class FitTorch(torch.nn.Module):
 
         assert(descriptors.size()[0] == xneigh.size()[0])
 
-        # input descriptors to a network for each pair; calculate pairwise energies
+        # Input descriptors to a network for each pair; calculate pairwise energies
 
         eij = self.networks[0](descriptors)
 
-        #print(f"Max eij: {torch.max(eij)}")
+        # Now eij is size (num_neighs, 3)
+        # Use these three outputs as input to Morse potential
+
+        eij_morse = self.calc_morse(eij, rij)
+
+
+        print(eij.size())
+
+        assert(False)
 
         # now self.state_dict is populated with the attributes declared above 
         # print("Model's state_dict:")
