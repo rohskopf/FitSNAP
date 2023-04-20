@@ -32,6 +32,10 @@ def create_torch_network(layer_sizes):
             layers.append(torch.nn.Softplus())
     except IndexError:
         layers.pop()
+        layers.append(torch.nn.Sigmoid())
+
+    print(layers)
+    #assert(False)
     return torch.nn.Sequential(*layers)
 
 
@@ -104,20 +108,56 @@ class FitTorch(torch.nn.Module):
         #test = rij - params[:,2].unsqueeze(1)
         #print(test.size())
 
+        #print(torch.min(params))
+        #print(torch.max(params))
+
         # params[:,indx] is size (numneighs) so need to unsqueeze
-        d = params[:,0].unsqueeze(1)
-        a = params[:,1].unsqueeze(1)
-        r0 = params[:,2].unsqueeze(1)
+        # Multiply by factors to keep in realistic bounds
+
+        """
+        d = params[:,0].unsqueeze(1)*(3.0 - 0.001) + 0.001
+        a = params[:,1].unsqueeze(1)*(2.5 - 0.5) + 0.5
+        r0 = params[:,2].unsqueeze(1)*(4.0 - 1.1) + 1.1
+
+        #print(d)
+        #print(a)
+        #print(r0)
+
         term1 = torch.exp(-2.*a*(rij - r0))
         term2 = 2.*torch.exp(-1.*a*(rij - r0))
 
         # Pairwise energies eij is size (numneighs, 1)
 
         eij = d*(term1 - term2)
+        """
 
-        print(eij.size())
+        d0 = params[:,0].unsqueeze(1)*(3.0 - 0.001) + 0.001
+        alpha = params[:,1].unsqueeze(1)*(2.5 - 0.5) + 0.5
+        r0 = params[:,2].unsqueeze(1)*(4.5 - 1.1) + 1.1
+        rc = 4.5
 
-        assert(False)
+        # apply pairwise Morse formula
+
+        #exponent1 = torch.tensor(-2.*alpha*(rc-r0))
+        #exponent2 = torch.tensor(-1.*alpha*(rc-r0))
+        exponent1 = -2.*alpha*(rc-r0)
+        exponent2 = -1.*alpha*(rc-r0)
+
+        #print(exponent1.size())
+
+        phi_r = d0*(torch.exp(-2.*alpha*(rij-r0)) - 2.*torch.exp(-1.*alpha*(rij-r0)))
+        phi_rc = d0*(torch.exp(exponent1) - 2.*torch.exp(exponent2))
+        dphi_dr_rc = 2.*d0*alpha*(torch.exp(exponent2) - torch.exp(exponent1))
+
+        eij = phi_r - phi_rc - (rij-rc)*dphi_dr_rc
+
+        #print(f"{torch.min(eij)} {torch.max(eij)} {torch.min(rij)} {torch.max(d0)} {torch.max(alpha)} {torch.max(r0)}")
+        #print(torch.max(eij))
+        #print(torch.max(rij))
+        #print(eij.size())
+
+        #assert(False)
+        return eij
 
     def forward(self, x, neighlist, transform_x, indices, atoms_per_structure, types, unique_i, unique_j, device, dtype=torch.float32):
         """
@@ -196,25 +236,25 @@ class FitTorch(torch.nn.Module):
 
         # Input descriptors to a network for each pair; calculate pairwise energies
 
-        eij = self.networks[0](descriptors)
+        params = self.networks[0](descriptors)
 
-        # Now eij is size (num_neighs, 3)
+        # params is size (num_neighs, 3)
         # Use these three outputs as input to Morse potential
 
-        eij_morse = self.calc_morse(eij, rij)
+        eij = self.calc_morse(params, rij)
 
 
-        print(eij.size())
+        #print(eij.size())
 
-        assert(False)
+        #assert(False)
 
         # now self.state_dict is populated with the attributes declared above 
         # print("Model's state_dict:")
         #for param_tensor in self.state_dict():
         #    print(param_tensor, "\t", self.state_dict()[param_tensor]) 
 
-        assert(cutoff_functions.size() == eij.size())
-        eij = torch.mul(eij,cutoff_functions)
+        #assert(cutoff_functions.size() == eij.size())
+        #eij = torch.mul(eij,cutoff_functions)
 
         # calculate energy per config
         
