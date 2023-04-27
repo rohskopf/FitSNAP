@@ -181,14 +181,16 @@ class LammpsCustom(LammpsBase):
 
         # populate the per-config arrays 'b' and 'w'
 
-        self.pt.shared_arrays['b'].array[index_b] = (energy - ref_energy)/num_atoms
+        if (energy is not None):
+            self.pt.shared_arrays['b'].array[index_b] = (energy - ref_energy)/num_atoms
         self.pt.shared_arrays['w'].array[index_b,0] = self._data["eweight"]
         self.pt.shared_arrays['w'].array[index_b,1] = self._data["fweight"]
         index_b += 1
 
         # populate the per-atom 3-vector arrays 'c' and 'x'
 
-        self.pt.shared_arrays['c'].array[index_c:(index_c + (3*num_atoms))] = self._data["Forces"].ravel() - ref_forces
+        if (self._data["Forces"] is not None):
+            self.pt.shared_arrays['c'].array[index_c:(index_c + (3*num_atoms))] = self._data["Forces"].ravel() - ref_forces
         self.pt.shared_arrays['x'].array[index_c:(index_c + (3*num_atoms))] = self._data["Positions"].ravel()
         index_c += 3*num_atoms
 
@@ -203,10 +205,11 @@ class LammpsCustom(LammpsBase):
 
         assert(np.all(np.round(xneighs-lmp_pos[neighlist[:,1]],6) == np.round(transform_x,6)) )
 
-        # calculate descriptors for standardization
+        # calculate descriptors for standardization, if doing a fit
 
-        descriptors = self.calculate_descriptors(self._data["Positions"], neighlist, xneighs)
-        self.pt.shared_arrays['descriptors'].array[index_neighlist:(index_neighlist+nrows_neighlist)] = descriptors
+        if self.config.args.perform_fit:
+            descriptors = self.calculate_descriptors(self._data["Positions"], neighlist, xneighs)
+            self.pt.shared_arrays['descriptors'].array[index_neighlist:(index_neighlist+nrows_neighlist)] = descriptors
         index_neighlist += nrows_neighlist
 
         """
@@ -270,6 +273,7 @@ class LammpsCustom(LammpsBase):
 
         # check that number of atoms here is equal to number of atoms in the sliced array
 
-        natoms_sliced = self.pt.shared_arrays['number_of_atoms'].sliced_array[self._i]
-        assert(natoms_sliced==num_atoms)
+        if (self.pt.shared_arrays['number_of_atoms'].sliced_array is not None):
+            natoms_sliced = self.pt.shared_arrays['number_of_atoms'].sliced_array[self._i]
+            assert(natoms_sliced==num_atoms)
         self.pt.shared_arrays['number_of_neighs_scrape'].sliced_array[self._i] = number_of_neighs
