@@ -135,31 +135,28 @@ with open(r"configs.pickle", "rb") as file:
 
 # Extract data needed for descriptor calculation.
 
-positions = torch.tensor(configs[0].x).requires_grad_(True)
-xneigh = torch.tensor(configs[0].xneigh)
+x = torch.tensor(configs[0].x).requires_grad_(True) # NOTE: requires_grad_(True) turns on autograd w.r.t. this tensor.
 transform_x = torch.tensor(configs[0].transform_x)
 atom_types = torch.tensor(configs[0].types).long()
 num_atoms = torch.tensor(configs[0].natoms)
 neighlist = torch.tensor(configs[0].neighlist).long()
-# Extract atoms i lined up with neighbors j.
+# Extract atoms i and neighbors j
 # E.g. https://github.com/FitSNAP/FitSNAP/blob/master/fitsnap3lib/tools/dataloader/pairwise.py
-unique_i = neighlist[:,0]
-# Extract neighbors j lined up with atoms i.
-unique_j = neighlist[:,1]
+unique_i = neighlist[:,0] # atoms i lined up with neighbors j.
+unique_j = neighlist[:,1] # neighbors j lined up with atoms i.
 
+# Calculate distances (rij) and displacements (xij, yij, zij).
+# NOTE: Only do this once so we don't bloat the computational graph.
+# See `forward` function in https://github.com/FitSNAP/FitSNAP/blob/master/fitsnap3lib/lib/neural_networks/pairwise.py
 
-print(unique_i)
+xneigh = transform_x + x[unique_j,:]
+diff = x[unique_i] - xneigh # size (numneigh, 3)
+diff_norm = torch.nn.functional.normalize(diff, dim=1) # size (numneigh, 3)
+rij = torch.linalg.norm(diff, dim=1).unsqueeze(1)  # size (numneigh,1)
 
-# Settings needed for ACE descriptors.
-"""
-			nradbase, #int-max k index in 
-			nradmax, #int-max n index in Rnl
-			lmax, #int-max l index in Rnl
-			lmbda): #float - exponential factor in g(x)
-"""
-
+# Declare settings needed for ACE descriptors.
 # From example:
-# https://github.com/jmgoff/coupling_standalone/blob/FitSNAP_pairing/all_examples/FitSNAP_standard/selected_avg.py
+# coupling_standalone/blob/FitSNAP_pairing/all_examples/FitSNAP_standard/selected_avg.py
 ranks = [1,2,3,4] # ranks of basis functions to be evaluated
 rc = 5.0 # from fitsnap input
 lmbda = 2.0 # exponential factor for sampling of r << r_c in g_k(r)
@@ -171,3 +168,7 @@ elements = ['H','O']
 rank = 1 # used to key parts of the lmax and nradmax dictionaries
 # Make radial basis object for a particular nl:
 rb = RadialBasis(rc, nradbase, nradmax_dict[rank], lmax_dict[rank], lmbda)
+
+"""
+TODO: Use this radial basis object to calculate descriptors given the geometry tensors above (rij, diff, diff_norm).
+"""
