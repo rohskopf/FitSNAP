@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 pi = 3.1415926
 
+
 def spherical_harmonic(l,m,theta,phi):
     Y = {mi:None for mi in range(-l,l+1)}
     if l == 0:
@@ -106,8 +107,7 @@ class RadialBasis:
 	    func = torch.mul(func,0.5)
 
         if k > 1:
-            cheb1 = torch.special.chebyshev_polynomial_t(k-1,self.r_scale) #if this doesnt work, then I need to implement chebychev polynomials of the first kind
-            #func = (1/4)*(1 -cheb1)*torch.add(torch.cos(pi_rscale),1)
+            cheb1 = torch.special.chebyshev_polynomial_t(self.r_scale,k-1) #validated against the old scipy version
 	    funca = torch.add(torch.cos(pi_rscale),1)
 	    funcb = torch.mul( torch.subtract(1,cheb1),0.25)
 	    func = torch.mul(funca,funcb)
@@ -121,7 +121,7 @@ class RadialBasis:
             f = self.g(i)
             gs[i] = f
             c_nlk = crad[n-1][l][i-1]
-            rnl = np.add(rnl, f*c_nlk)
+            rnl = torch.add(rnl, f*c_nlk)
         return rnl
 
     def init_R_nl(self,**kwargs):
@@ -129,7 +129,7 @@ class RadialBasis:
 	crad = torch.zeros((self.nradbase,self.lmax+1,self.nradbase))
 	for nind in range(self.nradbase):
 	    for lind in range(self.lmax+1):
-		crad[nind][lind] = np.array([1. if k ==nind else 0. for k in range(self.nradbase)])
+		crad[nind][lind] = torch.tensor([1. if k ==nind else 0. for k in range(self.nradbase)])
 	for n in range(1,self.nradmax+1):
 	    for l in range(self.lmax+1):
 		r_nls[n][l] = self.R_nl(n,l,crad)
@@ -200,3 +200,42 @@ class A_basis:
 	    phi = self.ab.ylm(l,m) * self.rb.r_nl(n,l) * mudelta * self.prefac
 
 	return torch.sum(phi)
+
+class B_basis:
+    def __init__(self,
+	    muvec,
+	    nvec,
+	    lvec,
+	    abase,
+	    ccs, # assumes m vectors are dict keys in string format: 'm1,m2,m3,m4', etc
+		):
+
+	self.Abase = abase
+	self.ccs = ccs
+	self.get_As()
+	self.mus = muvec
+	self.ns = nvec 
+	self.ls = lvec
+	self.Alst = None
+	self.B = None
+
+    def get_As(self):
+	mstrs = self.ccs.keys()
+	mvecs = [[int(k) for k in cckey.split(',')] for cckey in mstrs]
+	alst = torch.zeros((len(mvecs),self.Abase.rb.r_arr.shape[0]))
+	for lstid,mvec in enumerate(mvecs):
+	    aprd = torch.ones((len(self.Abase.rb.r_arr.shape[0])))
+	    for ind,m in enumerate(mvec):
+		ai = self.Abase.A(self.ns[ind],self.ls[ind],m,self.mus[ind])
+		aprd *= ai
+	    alst[lstid] = aprd
+	self.Alst = alst
+
+    def get_B(self)
+	Bi = torch.zeros((len(self.Abase.rb.r_arr.shape[0])))
+	mstrs = self.ccs.keys()
+	for im,mstr in enumerate(mstrs):
+	    Bi += self.Alst[im] * self.ccs[mstr]
+
+	self.B = Bi
+	return Bi
