@@ -69,7 +69,9 @@ class RadialBasis:
         self.lmbda = lmbda
         self.rij_scale()
         self.init_R_nl()
+        self.mu0 = 0
 
+    """
     def set_species(self,specs=None):
         self.chemflag = True
         if specs != None:
@@ -78,6 +80,7 @@ class RadialBasis:
         elif specs == None:
             specs = torch.zeros(self.r_arr.shape[0])
         self.species = specs
+    """
 
     def g(self,n):
         return self.gks[n]
@@ -91,6 +94,7 @@ class RadialBasis:
         #denominator = torch.exp(self.lmbda)-1
         denominator = (e**self.lmbda)-1
         rscale = 1 - (2 *(numerator/denominator))
+        self.exp_scale=rscale
         return rscale
         
     def cut_func(self,func):
@@ -108,16 +112,18 @@ class RadialBasis:
             func = torch.ones(self.r_scale.shape[0])
 
         if k == 1:
-            func = torch.add(torch.cos(pi_rscale),1)
-            func = torch.mul(func,0.5)
+            #func = torch.add(torch.cos(pi_rscale),1)
+            func = 0.5*(1 + torch.cos(pi_rscale))
+            #func = torch.mul(func,0.5)
 
         if k > 1:
-            cheb1 = torch.special.chebyshev_polynomial_t(self.r_scale,k-1) #validated against the old scipy version
+            cheb1 = torch.special.chebyshev_polynomial_t(self.exp_scale,k-1) #validated against the old scipy version
             funca = torch.add(torch.cos(pi_rscale),1)
             funcb = torch.mul( torch.subtract(1,cheb1),0.25)
             func = torch.mul(funca,funcb)
 
         return self.cut_func(func)
+        #return func
 
     def R_nl(self,n,l,crad):
         rnl = torch.zeros(self.r_scale.shape[0])
@@ -126,7 +132,8 @@ class RadialBasis:
             f = self.G(i)
             gs[i] = f
             c_nlk = crad[n-1][l][i-1]
-            rnl = torch.add(rnl, f*c_nlk)
+            #rnl = torch.add(rnl, f*c_nlk)
+            rnl += f #torch.add(rnl, f)
         self.gks = gs
         return rnl
 
@@ -149,8 +156,10 @@ class RadialBasis:
         self.basis = basis
         self.init_R_nl()
 
-    def set_species(self,specs):
+    def set_species(self,specs,mu0=0,mui=0):
         self.chemflag = True
+        self.mu0 = mu0
+        self.mui = mui
         if specs.shape[0] != self.r_scale.shape[0]:
             raise IndexError("size mismatch for chemical species")
         assert specs.shape[0] == self.r_scale.shape[0], "you must provide a species for each neighbor atom"
@@ -208,9 +217,18 @@ class A_basis:
         mask = (self.rb.species == muj)
         mudelta = torch.clone(mudeltai)
         mudelta[mask] = mudeltaj[mask]
-        phi = self.ab.ylm(l,m) * self.rb.r_nl(n,l) * mudelta * self.prefac
-
-        return torch.sum(phi)
+        muidelta = int(self.rb.mu0 == self.rb.mui)
+        print (muidelta)
+        phi = self.ab.ylm(l,m) * self.rb.r_nl(n,l) * mudelta * self.prefac * muidelta
+        res = torch.zeros((1,),dtype=torch.cfloat)
+        res += torch.sum(phi)
+        return res
+        #print ('phishapes')
+        #print (phi.shape)
+        #print (phi)
+        #print (torch.sum(phi).shape)
+        #print (torch.sum(phi))
+        #return torch.sum(phi)
 
 class B_basis:
     def __init__(self,
@@ -226,27 +244,31 @@ class B_basis:
         self.mus = muvec
         self.ns = nvec 
         self.ls = lvec
+        self.rank = len(lvec)
         self.Alst = None
-        self.B = None
+        self.B = torch.zeros((1,))*1j
         self.get_As()
 
     def get_As(self):
         mstrs = self.ccs.keys()
+        print (mstrs)
         mvecs = [[int(k) for k in cckey.split(',')] for cckey in mstrs]
-        alst = torch.zeros((len(mvecs),self.Abase.rb.r_arr.shape[0])) * 1j
+        alst = torch.zeros((len(mvecs),1),dtype=torch.cfloat)
         for lstid,mvec in enumerate(mvecs):
-            aprd = torch.ones((self.Abase.rb.r_arr.shape[0])) *1j
+            aprd = torch.ones((1,),dtype=torch.cfloat)
             for ind,m in enumerate(mvec):
-                ai = self.Abase.A(self.ns[ind],self.ls[ind],m,self.mus[ind])
+                ai = torch.ones((1,),dtype=torch.cfloat)
+                ai += self.Abase.A(self.ns[ind],self.ls[ind],m,self.mus[ind])
                 aprd *= ai
-            alst[lstid] = aprd
+            alst[lstid] += aprd
         self.Alst = alst
 
     def get_B(self):
-        Bi = torch.zeros((self.Abase.rb.r_arr.shape[0]))*1j
+        Bi = torch.zeros((1,))*1j
         mstrs = self.ccs.keys()
+        print (mstrs)
         for im,mstr in enumerate(mstrs):
             Bi += self.Alst[im] * self.ccs[mstr]
-
+            print (mstr,self.ccs[mstr])
         self.B = Bi
         return Bi

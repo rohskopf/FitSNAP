@@ -160,6 +160,21 @@ diff = x[unique_i] - xneigh # size (numneigh, 3)
 diff_norm = torch.nn.functional.normalize(diff, dim=1) # size (numneigh, 3)
 rij = torch.linalg.norm(diff, dim=1).unsqueeze(1)  # size (numneigh,1)
 neigh_types = atom_types[unique_j]
+
+ui = torch.unique(unique_i)
+#print (neighlist[(unique_i == ui[0]).nonzero().squeeze()])
+
+print ((unique_i == ui[0]).nonzero())
+nediffs = diff[(unique_i == ui[0]).nonzero().squeeze()]
+#nediffs = xneigh[(unique_i == ui[0]).nonzero().squeeze()]
+#netypes = neigh_types[(unique_i == ui[0]).nonzero().squeeze()]
+netypes = neigh_types[(unique_i == ui[0]).squeeze()]
+itypes = atom_types[(ui).squeeze()]
+print (nediffs)
+print (netypes)
+print ('neigh dists shape',nediffs.shape)
+print (itypes)
+
 print (neigh_types)
 # Declare settings needed for ACE descriptors.
 # From example:
@@ -175,21 +190,25 @@ elements = ['H','O']
 from get_ccs import *
 
 #ccs_per_orb_nl
-orb_nl = '1_1,1,1,1,2,2_'
-rank = 1 # used to key parts of the lmax and nradmax dictionaries
+#orb_nl = '0_1,1,1,1,1,1_'
+orb_nl = '0_0,2,0_'
 # Make radial basis object for a particular nl:
 mu0,mu,n,l,inter = get_mu_n_l(orb_nl,return_L=True)
 rank = len(l)
 # NOTE these functions expect distances for all neighbor atomsj to central atom i
-rb = RadialBasis(diff, rc, nradbase, nradmax_dict[rank], lmax_dict[rank], lmbda)
-rb.set_species(specs=neigh_types)
-ab = AngularBasis(diff,lmax_dict[rank])
+#rb = RadialBasis(diff, rc, nradbase, nradmax_dict[rank], lmax_dict[rank], lmbda)
+rb = RadialBasis(nediffs, rc, nradbase, nradmax_dict[rank], lmax_dict[rank], lmbda)
+#rb.set_species(specs=neigh_types)
+rb.set_species(specs=netypes,mu0=mu0,mui=itypes[ui[0]])
+#ab = AngularBasis(diff,lmax_dict[rank])
+ab = AngularBasis(nediffs,lmax_dict[rank])
 Abas = A_basis(rb,ab)
 ccsi = ccs_per_orb_nl[orb_nl]
 Bbas = B_basis(mu,n,l,Abas,ccsi)
-Bbas.get_B()
+bi = Bbas.get_B()
 print (Bbas.B)
 print (Bbas.B.shape)
+print ('bi',bi)
 #rb = RadialBasis(rc, nradbase, nradmax_dict[rank], lmax_dict[rank], lmbda)
 
 """
